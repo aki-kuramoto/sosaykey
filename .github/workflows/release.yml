@@ -92,11 +92,11 @@ jobs:
         env:
           NODE_OPTIONS: --max-old-space-size=4096
 
-      # Linux: バイナリと .deb パッケージをビルド
-      - name: Build Linux application with DEB
+      # Linux: バイナリをビルド
+      - name: Build Linux application
         if: runner.os == 'Linux'
         run: |
-          wails build -platform ${{ matrix.platform }} -deb
+          wails build -platform ${{ matrix.platform }}
         env:
           NODE_OPTIONS: --max-old-space-size=4096
 
@@ -144,13 +144,6 @@ jobs:
           # バイナリをリネーム
           if [ -f "build/bin/sosaykey" ]; then
             mv build/bin/sosaykey "build/bin/sosaykey-linux-${{ matrix.arch }}"
-          fi
-          # .deb パッケージをリネーム（存在する場合）
-          if ls build/bin/*.deb 1> /dev/null 2>&1; then
-            for deb in build/bin/*.deb; do
-              mv "$deb" "build/bin/sosaykey-linux-${{ matrix.arch }}.deb"
-              break
-            done
           fi
 
       # アーティファクトをアップロード
@@ -207,11 +200,10 @@ jobs:
 
             ### Linux
             - `sosaykey-linux-amd64` - Linux AMD64 バイナリ
-            - `sosaykey-linux-amd64.deb` - Linux AMD64 DEB パッケージ (Debian/Ubuntu)
             - `sosaykey-linux-arm64` - Linux ARM64 バイナリ
-            - `sosaykey-linux-arm64.deb` - Linux ARM64 DEB パッケージ (Debian/Ubuntu)
 
             ### 今後の予定
+            - DEB パッケージ (Debian/Ubuntu)
             - RPM パッケージ (Fedora/RHEL/CentOS)
             - AppImage (ディストリビューション非依存)
 
@@ -225,12 +217,7 @@ jobs:
             1. `.app.zip` をダウンロードして解凍
             2. `sosaykey.app` を Applications フォルダに移動
 
-            ### Linux (Debian/Ubuntu)
-            ```bash
-            sudo dpkg -i sosaykey-linux-amd64.deb
-            ```
-
-            ### Linux (その他のディストリビューション)
+            ### Linux
             ```bash
             chmod +x sosaykey-linux-amd64
             ./sosaykey-linux-amd64
