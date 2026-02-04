@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>mdviewer</title>
+    <link rel="stylesheet" href="./style.css" />
+    <link rel="stylesheet" href="./app.css" />
+</head>
+
+<body>
+    <div id="app">
+        <div class="controls">
+            <input type="text" id="filePath" placeholder="Enter full path to .md file" style="width: 300px;">
+            <button onclick="loadFile()">Load Markdown</button>
+        </div>
+        <div id="content" class="markdown-body"></div>
+    </div>
+    <script src="./main.js" type="module"></script>
+</body>
+
+</html>

@@ -1,0 +1,119 @@
+# ===================================
+# Wails 関連
+# ===================================
+# ビルド成果物
+build/bin
+
+# ===================================
+# フロントエンド関連
+# ===================================
+# 依存関係
+node_modules
+**/node_modules
+
+# ビルド成果物
+frontend/dist
+dist
+
+# 自動生成ファイル
+frontend/wailsjs/go/main/App.d.ts
+frontend/wailsjs/go/main/App.js
+frontend/wailsjs/runtime/package.json
+frontend/wailsjs/runtime/runtime.d.ts
+frontend/wailsjs/runtime/runtime.js
+
+# ===================================
+# 一時ディレクトリ（開発中）
+# ===================================
+# __*, _* で始まるディレクトリ/ファイル
+__*/
+_*/
+__*
+_*
+
+# ===================================
+# プライベート/機密情報
+# ===================================
+.private
+*.env
+.env.*
+!.env.example
+secrets/
+*.key
+*.pem
+*.p12
+*.pfx
+
+# ===================================
+# OS 固有ファイル
+# ===================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.directory
+
+# ===================================
+# IDE/エディタ関連
+# ===================================
+# VS Code
+.vscode/
+*.code-workspace
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Vim
+*.swp
+*.swo
+*~
+.*.swp
+.*.swo
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# ===================================
+# Go 関連
+# ===================================
+# テスト/カバレッジ
+*.test
+*.out
+coverage.out
+coverage.html
+
+# ===================================
+# 一時ファイル/バックアップ
+# ===================================
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
+*.orig
+*.log
+*.cache
+
+# ===================================
+# その他
+# ===================================
+# パッチファイル
+*.patch
+*.diff
