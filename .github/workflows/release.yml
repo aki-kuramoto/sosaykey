@@ -89,11 +89,11 @@ jobs:
         env:
           NODE_OPTIONS: --max-old-space-size=4096
 
-      # Linux: バイナリをビルド
+      # Linux: バイナリをビルド (Ubuntu 24.04 uses webkit2gtk-4.1)
       - name: Build Linux application
         if: runner.os == 'Linux'
         run: |
-          wails build -platform ${{ matrix.platform }}
+          wails build -platform ${{ matrix.platform }} -tags webkit2_41
         env:
           NODE_OPTIONS: --max-old-space-size=4096
 
