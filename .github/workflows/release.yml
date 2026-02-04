@@ -1,0 +1,242 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'  # v0.1.0, v1.0.0 などのタグでトリガー
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Windows ビルド
+          - name: Windows AMD64
+            os: windows-latest
+            platform: windows/amd64
+            arch: amd64
+          - name: Windows ARM64
+            os: windows-latest
+            platform: windows/arm64
+            arch: arm64
+          
+          # macOS ビルド (Universal = AMD64 + ARM64)
+          - name: macOS Universal
+            os: macos-latest
+            platform: darwin/universal
+            arch: universal
+          
+          # Linux ビルド
+          - name: Linux AMD64
+            os: ubuntu-latest
+            platform: linux/amd64
+            arch: amd64
+          - name: Linux ARM64
+            os: ubuntu-latest
+            platform: linux/arm64
+            arch: arm64
+
+    name: Build - ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      # Linux の場合のみ依存関係をインストール
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev
+
+      # Windows の場合、NSIS をインストール（インストーラー生成用）
+      - name: Install NSIS (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          choco install nsis -y
+
+      # Wails CLI のインストール
+      - name: Install Wails CLI
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
+      # バージョン番号を抽出（タグから v を除去）
+      - name: Extract version
+        id: version
+        shell: bash
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+
+      # Windows: バイナリとNSISインストーラーをビルド
+      - name: Build Windows application with NSIS
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          wails build -platform ${{ matrix.platform }} -nsis
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+
+      # Linux: バイナリと .deb パッケージをビルド
+      - name: Build Linux application with DEB
+        if: runner.os == 'Linux'
+        run: |
+          wails build -platform ${{ matrix.platform }} -deb
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+
+      # macOS: バイナリビルド
+      - name: Build macOS application
+        if: runner.os == 'macOS'
+        run: |
+          wails build -platform ${{ matrix.platform }}
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+
+      # Windows: 成果物の整理
+      - name: Prepare Windows artifacts
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          # バイナリをリネーム
+          if (Test-Path "build/bin/sosaykey.exe") {
+            Move-Item -Path "build/bin/sosaykey.exe" -Destination "build/bin/sosaykey-windows-${{ matrix.arch }}.exe"
+          }
+          # NSIS インストーラーをリネーム（存在する場合）
+          $installerPath = Get-ChildItem -Path "build/bin" -Filter "*.exe" -Exclude "sosaykey-windows-${{ matrix.arch }}.exe" | Select-Object -First 1
+          if ($installerPath) {
+            Move-Item -Path $installerPath.FullName -Destination "build/bin/sosaykey-windows-${{ matrix.arch }}-installer.exe"
+          }
+
+      # macOS: 成果物の整理
+      - name: Prepare macOS artifacts
+        if: runner.os == 'macOS'
+        run: |
+          # バイナリをリネーム
+          if [ -f "build/bin/sosaykey.app/Contents/MacOS/sosaykey" ]; then
+            # .app バンドル全体を圧縮
+            cd build/bin
+            zip -r sosaykey-darwin-${{ matrix.arch }}.app.zip sosaykey.app
+            cd ../..
+          elif [ -f "build/bin/sosaykey" ]; then
+            mv build/bin/sosaykey "build/bin/sosaykey-darwin-${{ matrix.arch }}"
+          fi
+
+      # Linux: 成果物の整理
+      - name: Prepare Linux artifacts
+        if: runner.os == 'Linux'
+        run: |
+          # バイナリをリネーム
+          if [ -f "build/bin/sosaykey" ]; then
+            mv build/bin/sosaykey "build/bin/sosaykey-linux-${{ matrix.arch }}"
+          fi
+          # .deb パッケージをリネーム（存在する場合）
+          if ls build/bin/*.deb 1> /dev/null 2>&1; then
+            for deb in build/bin/*.deb; do
+              mv "$deb" "build/bin/sosaykey-linux-${{ matrix.arch }}.deb"
+              break
+            done
+          fi
+
+      # アーティファクトをアップロード
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sosaykey-${{ runner.os }}-${{ matrix.arch }}
+          path: |
+            build/bin/sosaykey-*
+            !build/bin/*.app
+
+  # リリース作成
+  release:
+    needs: [build]
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Display artifacts structure
+        run: ls -R artifacts
+
+      - name: Prepare release assets
+        run: |
+          mkdir -p release-assets
+          # すべてのアーティファクトを release-assets に移動
+          find artifacts -type f -name 'sosaykey-*' -exec cp {} release-assets/ \;
+          ls -lh release-assets/
+
+      # GitHub Release の作成
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          body: |
+            ## リリース成果物
+
+            ### Windows
+            - `sosaykey-windows-amd64.exe` - Windows AMD64 バイナリ
+            - `sosaykey-windows-amd64-installer.exe` - Windows AMD64 NSIS インストーラー
+            - `sosaykey-windows-arm64.exe` - Windows ARM64 バイナリ
+            - `sosaykey-windows-arm64-installer.exe` - Windows ARM64 NSIS インストーラー
+
+            ### macOS
+            - `sosaykey-darwin-universal.app.zip` - macOS Universal アプリケーションバンドル (Intel + Apple Silicon)
+
+            ### Linux
+            - `sosaykey-linux-amd64` - Linux AMD64 バイナリ
+            - `sosaykey-linux-amd64.deb` - Linux AMD64 DEB パッケージ (Debian/Ubuntu)
+            - `sosaykey-linux-arm64` - Linux ARM64 バイナリ
+            - `sosaykey-linux-arm64.deb` - Linux ARM64 DEB パッケージ (Debian/Ubuntu)
+
+            ### 今後の予定
+            - RPM パッケージ (Fedora/RHEL/CentOS)
+            - AppImage (ディストリビューション非依存)
+
+            ## インストール方法
+
+            ### Windows
+            1. インストーラー版 (`*-installer.exe`) をダウンロードして実行
+            2. または、バイナリ版 (`.exe`) をダウンロードして直接実行
+
+            ### macOS
+            1. `.app.zip` をダウンロードして解凍
+            2. `sosaykey.app` を Applications フォルダに移動
+
+            ### Linux (Debian/Ubuntu)
+            ```bash
+            sudo dpkg -i sosaykey-linux-amd64.deb
+            ```
+
+            ### Linux (その他のディストリビューション)
+            ```bash
+            chmod +x sosaykey-linux-amd64
+            ./sosaykey-linux-amd64
+            ```
+          files: |
+            release-assets/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

@@ -1,5 +1,12 @@
 # Sosaykey
 
+[![Release](https://img.shields.io/github/v/release/aki-kuramoto/sosaykey)](https://github.com/aki-kuramoto/sosaykey/releases)
+[![Downloads](https://img.shields.io/github/downloads/aki-kuramoto/sosaykey/total)](https://github.com/aki-kuramoto/sosaykey/releases)
+
+> **[📥 Download the latest release](https://github.com/aki-kuramoto/sosaykey/releases/latest)**
+> 
+> Available for Windows, macOS, and Linux
+
 ## About
 
 Sosaykey は Wails (Go) で作成する、Markdown ファイルの内容を表示するデスクトップアプリケーションである。
