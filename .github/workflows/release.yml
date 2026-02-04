@@ -30,12 +30,15 @@ jobs:
             platform: darwin/universal
             arch: universal
           
-          # Linux ビルド (AMD64 のみ)
-          # 注: ARM64 は ubuntu-latest (x86_64) でのクロスコンパイルが困難なため、専用ランナーが必要
+          # Linux ビルド
           - name: Linux AMD64
             os: ubuntu-latest
             platform: linux/amd64
             arch: amd64
+          - name: Linux ARM64
+            os: ubuntu-latest
+            platform: linux/arm64
+            arch: arm64
 
     name: Build - ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
@@ -197,9 +200,9 @@ jobs:
 
             ### Linux
             - `sosaykey-linux-amd64` - Linux AMD64 バイナリ
+            - `sosaykey-linux-arm64` - Linux ARM64 バイナリ
 
             ### 今後の予定
-            - Linux ARM64 ビルド (専用ランナーが必要)
             - DEB パッケージ (Debian/Ubuntu)
             - RPM パッケージ (Fedora/RHEL/CentOS)
             - AppImage (ディストリビューション非依存)
